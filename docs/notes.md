@@ -23,7 +23,27 @@ ZipCrypto 是流密码，头 12 字节是加密头，最后一个字节是校验
 CRC-32 的单字节更新不能用 `zlib.crc32`：zlib 带前后异或，PKWARE 的密钥推进要的是不带异或的
 原始表更新，所以 `archives.py` 自己建表。
 
+解密的字节公式按 PKWARE 的规范来：temp 取 16 位，`(temp * (temp ^ 1))` 右移 8 位再取低 8 位。
+写成 32 位右移 24 位是错的，两种写法结果不同，正确的口令解不出来。
+
 AES 加密的 zip（压缩方式 99）走 pyzipper，7z 走 py7zr 或外部 7z 命令，找不到工具时明确报错。
+
+## 跨实现的固定样本
+
+加密 zip 的测试用 `tests/fixtures/secret-zipcrypto.zip`，是 Info-ZIP 的 `zip -P` 生成的，
+不是用 Python 的 zipfile 造的。zipfile 只会读加密包，不会写，造不出这样的样本。
+
+用别的实现生成的样本，才能测出「跟规范对不对得上」。自己加密自己解密，
+两边算法写错时一样能对上。这条抓出过上面那个 16 位与 32 位的差异。
+
+## 打包入口的名字
+
+入口文件叫 `packaging_entry.py`，不叫 `passcrack.py`：仓库根目录下有个同名文件会把
+`passcrack` 这个包遮住，测试与子进程 import 到的是入口文件，报「passcrack 不是包」。
+
+`scripts/check_bundle.py` 读 PyInstaller 的归档目录，核对前端资源确实在包里。
+数据文件是压进可执行文件的，从包外面看目录看不出来，只能读归档。
+Windows 上归档里的路径是反斜杠，比对前要统一成斜杠。
 
 ## WiFi 校验
 

@@ -46,6 +46,14 @@ jobs:
           pip install pyinstaller==6.10.0 pywebview py7zr pyzipper
       - name: 打包
         run: pyinstaller build/passcrack.spec --noconfirm --clean
+      - name: 核对前端资源打进去了
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            python scripts/check_bundle.py dist/passcrack.app/Contents/MacOS/passcrack
+          else
+            python scripts/check_bundle.py dist/passcrack.exe
+          fi
       - name: 压缩产物
         shell: bash
         run: |

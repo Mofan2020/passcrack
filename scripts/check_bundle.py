@@ -7,6 +7,7 @@ PyInstaller 会把数据文件压进可执行文件里，肉眼从包里看不�
 
 from __future__ import annotations
 
+import contextlib
 import sys
 from pathlib import Path
 
@@ -57,9 +58,7 @@ def main() -> int:
 
 if __name__ == "__main__":
     # Windows 的控制台默认代码页装不下中文，输出前先放宽编码
-    for _stream in (sys.stdout, sys.stderr):
-        try:
+    with contextlib.suppress(Exception):
+        for _stream in (sys.stdout, sys.stderr):
             _stream.reconfigure(encoding="utf-8", errors="replace")
-        except Exception:
-            pass
     sys.exit(main())

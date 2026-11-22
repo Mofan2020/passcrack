@@ -56,4 +56,10 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    # Windows 的控制台默认代码页装不下中文，输出前先放宽编码
+    for _stream in (sys.stdout, sys.stderr):
+        try:
+            _stream.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
     sys.exit(main())

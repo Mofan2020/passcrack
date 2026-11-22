@@ -22,7 +22,7 @@ def list_entries(binary: Path) -> list[str]:
 
     reader = CArchiveReader(str(binary))
     # Windows 上归档里的路径是反斜杠，统一成斜杠再比
-    return [name.replace("\\", "/") for name in reader.toc.keys()]
+    return [name.replace("\\", "/") for name in reader.toc]
 
 
 def main() -> int:

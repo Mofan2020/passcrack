@@ -17,7 +17,7 @@ _version_text = (SRC / "passcrack" / "__init__.py").read_text(encoding="utf-8")
 VERSION = re.search(r'__version__\s*=\s*"([^"]+)"', _version_text).group(1)
 
 a = Analysis(
-    [str(ROOT / "passcrack.py")],
+    [str(ROOT / "packaging_entry.py")],
     pathex=[str(SRC)],
     binaries=[],
     datas=[(str(SRC / "passcrack" / "ui" / "assets"), "passcrack/ui/assets")],

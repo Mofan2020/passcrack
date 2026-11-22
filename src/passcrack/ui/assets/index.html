@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>passcrack</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="logo">🔑</span>
+    <div>
+      <h1>passcrack</h1>
+      <p class="sub" id="version">口令恢复工具</p>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <span class="pill" id="platform-pill">—</span>
+    <button class="ghost" id="btn-disclaimer">免责声明</button>
+  </div>
+</header>
+
+<section class="disclaimer-bar">
+  <div class="disclaimer-text">
+    <strong>仅限授权使用。</strong>
+    <span id="disclaimer-short"></span>
+  </div>
+  <label class="ack">
+    <input type="checkbox" id="ack">
+    <span id="ack-text">我确认目标是本人所有，或已获得所有者明确书面授权</span>
+  </label>
+</section>
+
+<nav class="tabs" role="tablist">
+  <button class="tab active" data-tab="ftp" role="tab">FTP</button>
+  <button class="tab" data-tab="wifi" role="tab">WiFi</button>
+  <button class="tab" data-tab="archive" role="tab">压缩包</button>
+  <button class="tab" data-tab="saved" role="tab">本机已保存</button>
+  <button class="tab" data-tab="opts" role="tab">字典与规则</button>
+</nav>
+
+<main>
+  <!-- FTP -->
+  <section class="panel active" id="panel-ftp">
+    <div class="grid">
+      <label class="field">
+        <span>服务器地址 <em>必填</em></span>
+        <input type="text" id="ftp-host" placeholder="ftp.example.com 或 192.168.1.10">
+      </label>
+      <label class="field">
+        <span>用户名 <em>必填</em></span>
+        <input type="text" id="ftp-user" placeholder="anonymous">
+      </label>
+      <label class="field narrow">
+        <span>端口</span>
+        <input type="number" id="ftp-port" value="21">
+      </label>
+      <label class="field narrow">
+        <span>每次尝试间隔（秒）</span>
+        <input type="number" id="ftp-delay" value="0.5" step="0.1">
+      </label>
+      <label class="field narrow">
+        <span>最大尝试次数</span>
+        <input type="number" id="ftp-max" value="0">
+      </label>
+      <label class="check">
+        <input type="checkbox" id="ftp-tls">
+        <span>隐式 FTPS（990）</span>
+      </label>
+      <label class="check">
+        <input type="checkbox" id="ftp-saved">
+        <span>只查本机已保存的密码，不做在线尝试</span>
+      </label>
+    </div>
+    <div class="hint">本工具只对你填的这一个服务器工作，没有扫描与批量枚举。</div>
+    <div class="actions">
+      <button class="primary" data-start="ftp">开始</button>
+      <button class="ghost" data-cancel="ftp" disabled>取消</button>
+    </div>
+    <div class="progress" data-progress="ftp">
+      <div class="bar"><div class="fill"></div></div>
+      <div class="stats"><span class="tried">0</span> 个候选 · <span class="rate">0</span> · <span class="elapsed">0:00</span></div>
+    </div>
+    <div class="result" data-result="ftp"></div>
+  </section>
+
+  <!-- WiFi -->
+  <section class="panel" id="panel-wifi">
+    <div class="grid">
+      <label class="field">
+        <span>SSID <em>必填</em></span>
+        <input type="text" id="wifi-ssid" placeholder="我的WiFi">
+      </label>
+      <label class="field">
+        <span>抓包文件（.hc22000 / .pcap / .cap）</span>
+        <span class="file-row">
+          <input type="text" id="wifi-capture" placeholder="选择抓包文件">
+          <button class="ghost small" id="wifi-pick">选择…</button>
+        </span>
+      </label>
+      <label class="check">
+        <input type="checkbox" id="wifi-saved">
+        <span>只查本机已保存的密码</span>
+      </label>
+    </div>
+    <div class="hint">
+      WPA2 走离线校验（PBKDF2 + MIC）。WPA3 的 SAE 需要跑完整协议，本工具检测到会提示改用 hashcat 或 hcxtools。
+    </div>
+    <div class="actions">
+      <button class="primary" data-start="wifi">开始</button>
+      <button class="ghost" data-cancel="wifi" disabled>取消</button>
+    </div>
+    <div class="progress" data-progress="wifi">
+      <div class="bar"><div class="fill"></div></div>
+      <div class="stats"><span class="tried">0</span> 个候选 · <span class="rate">0</span> · <span class="elapsed">0:00</span></div>
+    </div>
+    <div class="result" data-result="wifi"></div>
+  </section>
+
+  <!-- 压缩包 -->
+  <section class="panel" id="panel-archive">
+    <div class="grid">
+      <label class="field">
+        <span>压缩包 <em>必填</em></span>
+        <span class="file-row">
+          <input type="text" id="arc-file" placeholder="选择 zip / 7z / rar">
+          <button class="ghost small" id="arc-pick">选择…</button>
+        </span>
+      </label>
+    </div>
+    <div class="hint">格式自动识别。zip 的传统加密只解开头 12 字节做校验，比整包尝试快一到两个数量级。</div>
+    <div class="actions">
+      <button class="primary" data-start="archive">开始</button>
+      <button class="ghost" data-cancel="archive" disabled>取消</button>
+    </div>
+    <div class="progress" data-progress="archive">
+      <div class="bar"><div class="fill"></div></div>
+      <div class="stats"><span class="tried">0</span> 个候选 · <span class="rate">0</span> · <span class="elapsed">0:00</span></div>
+    </div>
+    <div class="result" data-result="archive"></div>
+  </section>
+
+  <!-- 本机已保存 -->
+  <section class="panel" id="panel-saved">
+    <div class="grid">
+      <label class="field">
+        <span>FTP 服务器地址</span>
+        <input type="text" id="sv-host" placeholder="ftp.example.com">
+      </label>
+      <label class="field">
+        <span>FTP 用户名</span>
+        <input type="text" id="sv-user" placeholder="可选">
+      </label>
+      <label class="field">
+        <span>WiFi SSID</span>
+        <input type="text" id="sv-ssid" placeholder="我的WiFi">
+      </label>
+    </div>
+    <div class="hint">从系统凭据库里读取。macOS 读钥匙串，Windows 读凭据管理器与 WLAN 配置。</div>
+    <div class="actions">
+      <button class="primary" id="saved-run">查询</button>
+    </div>
+    <div class="result" data-result="saved"></div>
+  </section>
+
+  <!-- 通用设置 -->
+  <section class="panel" id="panel-opts">
+    <div class="grid">
+      <label class="field">
+        <span>字典文件（一行一个口令）</span>
+        <span class="file-row">
+          <input type="text" id="opt-wordlist" placeholder="多个用分号隔开">
+          <button class="ghost small" id="opt-pick">选择…</button>
+        </span>
+      </label>
+      <label class="field">
+        <span>掩码</span>
+        <input type="text" id="opt-mask" placeholder="?l?l?l?l?d，多个用分号隔开">
+      </label>
+      <label class="field">
+        <span>规则</span>
+        <input type="text" id="opt-rules" placeholder="多个用分号隔开，例如 digits;symbols">
+      </label>
+      <label class="check">
+        <input type="checkbox" id="opt-builtin" checked>
+        <span>使用内置常用口令表</span>
+      </label>
+      <label class="field narrow">
+        <span>并行进程数</span>
+        <input type="number" id="opt-workers" value="0">
+      </label>
+    </div>
+    <details class="rules-help">
+      <summary>可用规则</summary>
+      <ul id="rule-list"></ul>
+    </details>
+  </section>
+</main>
+
+<div class="modal" id="modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h2>免责声明</h2>
+      <button class="ghost small" id="modal-close">关闭</button>
+    </div>
+    <pre id="modal-text"></pre>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

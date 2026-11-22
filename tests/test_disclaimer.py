@@ -48,14 +48,18 @@ def test_cli_banner_prints_the_full_disclaimer():
         assert phrase in text, phrase
 
 
+def _read_asset(name: str) -> str:
+    with open(os.path.join(ASSETS, name), encoding="utf-8") as fh:
+        return fh.read()
+
+
 def test_ui_html_shows_a_disclaimer_banner():
-    html = open(os.path.join(ASSETS, "index.html"), encoding="utf-8").read()
-    assert "免责" in html
+    html = _read_asset("index.html")
     assert "免责" in html
 
 
 def test_ui_js_shows_a_disclaimer_banner():
-    js = open(os.path.join(ASSETS, "app.js"), encoding="utf-8").read()
+    js = _read_asset("app.js")
     assert "disclaimer" in js
 
 
@@ -67,7 +71,7 @@ def test_ui_api_exposes_the_disclaimer():
 
 
 def test_ui_requires_the_acknowledgement_before_running():
-    html = open(os.path.join(ASSETS, "index.html"), encoding="utf-8").read()
-    js = open(os.path.join(ASSETS, "app.js"), encoding="utf-8").read()
+    html = _read_asset("index.html")
+    js = _read_asset("app.js")
     assert 'id="ack"' in html
-    assert "$(\"#ack\").checked" in js
+    assert '$("#ack").checked' in js

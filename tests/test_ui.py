@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import subprocess
+import sys
+
 import pytest
 
 from passcrack.ui.app import Api
@@ -65,5 +68,21 @@ def test_cancel_of_unknown_job():
     assert Api().cancel("nope") is False
 
 
-def test_saved_ftp_returns_none_for_unknown_host():
-    assert Api().saved_ftp("no-such-host.invalid", "nobody") in (None, "")
+def test_keychain_lookup_does_not_crash_the_process():
+    """钥匙串查询放到子进程里跑。
+
+    平台 API 万一在某种环境里崩了，不能把整个测试会话带走。
+    """
+    code = (
+        "from passcrack.osint import saved;"
+        "print(saved.find_ftp_password('passcrack-test.invalid', 'nobody') is None)"
+    )
+    proc = subprocess.run(
+        [sys.executable, "-c", code],
+        capture_output=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=60,
+    )
+    assert proc.returncode == 0, proc.stderr
+    assert "True" in proc.stdout

@@ -139,10 +139,22 @@ def test_describe_mentions_ssid():
 
 
 def test_pmkid_check_uses_the_same_pmk():
-    """PMKID 记录也要能验出来。"""
+    """PMKID 记录也要能验出来。
+
+    被动抓到的 PMKID 记录里没有 ANonce，所以 NA 取空，SPI 依次试 0、1
+    以及抓到的 PMKID 前 8 字节的小端解释。
+    """
     pmk = hashlib.pbkdf2_hmac("sha1", PASSPHRASE.encode(), SSID.encode(), 4096, 32)
-    data = b"PMK Name" + BSSID + STA + b"\x00" * 8 + struct.pack("<Q", 0)
+    data = b"PMK Name" + BSSID + STA + b"" + struct.pack("<Q", 0)
     pmkid = hmac.new(pmk, data, hashlib.sha1).digest()[:16]
     hs = wifi.Handshake(ssid=SSID, bssid=BSSID, sta=STA, pmkid=pmkid)
     assert wifi.check_candidate(hs, PASSPHRASE) is True
     assert wifi.check_candidate(hs, "wrong") is False
+
+
+def test_pmkid_with_zero_nonce_is_also_accepted():
+    pmk = hashlib.pbkdf2_hmac("sha1", PASSPHRASE.encode(), SSID.encode(), 4096, 32)
+    data = b"PMK Name" + BSSID + STA + b"\x00" * 32 + struct.pack("<Q", 0)
+    pmkid = hmac.new(pmk, data, hashlib.sha1).digest()[:16]
+    hs = wifi.Handshake(ssid=SSID, bssid=BSSID, sta=STA, pmkid=pmkid)
+    assert wifi.check_candidate(hs, PASSPHRASE) is True

@@ -25,8 +25,8 @@ import os
 import shutil
 import struct
 import subprocess
-from dataclasses import dataclass, field
-from typing import Iterable, Sequence
+from collections.abc import Iterable, Sequence
+from dataclasses import dataclass
 
 PBKDF2_ROUNDS = 4096
 
@@ -52,9 +52,7 @@ class Handshake:
             return False
         if self.pmkid:
             return True
-        if self.eapol2 and self.anonce and self.snonce:
-            return True
-        return False
+        return bool(self.eapol2 and self.anonce and self.snonce)
 
 
 # ----------------------------------------------------------------------
@@ -112,7 +110,7 @@ def _hexbytes(s: str) -> bytes:
 def parse_hc22000(path: str) -> list[Handshake]:
     """解析 hcxtools 的 hc22000 文件。"""
     out: list[Handshake] = []
-    with open(path, "r", encoding="utf-8", errors="replace") as fh:
+    with open(path, encoding="utf-8", errors="replace") as fh:
         for raw in fh:
             line = raw.strip()
             if not line or line.startswith("#"):
@@ -281,7 +279,7 @@ def parse_pcap(path: str) -> list[Handshake]:
             fc = payload[0]
             fc_type = (fc >> 2) & 0x3
             fc_sub = fc & 0xF
-            addr1 = payload[4:10]
+            payload[4:10]
             addr2 = payload[10:16]
             addr3 = payload[16:22]
             if fc_type == 0:  # 管理帧
@@ -366,19 +364,19 @@ def check_candidate(hs: Handshake, candidate: str) -> bool:
     """一个口令对一条握手是否成立。"""
     pmk = derive_pmk(candidate, hs.ssid)
     if hs.pmkid:
-        for spi in (0, 1, int.from_bytes(hs.pmkid[:8], "little")):
-            if compute_pmkid(pmk, hs.bssid, hs.sta, hs.anonce, spi) == hs.pmkid:
-                return True
+        # 被动抓到的 PMKID 记录里没有 ANonce，NA 取空或者全零都试一遍；
+        # SPI 依次试 0、1 与抓到的 PMKID 前 8 字节的小端解释。
+        for na in (hs.anonce, b"", b"\x00" * 32):
+            for spi in (0, 1, int.from_bytes(hs.pmkid[:8], "little")):
+                if compute_pmkid(pmk, hs.bssid, hs.sta, na, spi) == hs.pmkid:
+                    return True
         return False
     if hs.eapol2 is None or not hs.anonce or not hs.snonce:
         return False
     ptk = derive_ptk(pmk, hs.bssid, hs.sta, hs.anonce, hs.snonce)
     if compute_mic(ptk, hs.eapol2) == hs.eapol2[80:96]:
         return True
-    if hs.eapol3 is not None and len(hs.eapol3) >= 96:
-        if compute_mic(ptk, hs.eapol3) == hs.eapol3[80:96]:
-            return True
-    return False
+    return bool(hs.eapol3 is not None and len(hs.eapol3) >= 96 and compute_mic(ptk, hs.eapol3) == hs.eapol3[80:96])
 
 
 def check_batch(candidates: Sequence[str], handshakes: Sequence[Handshake]) -> str | None:
@@ -391,7 +389,11 @@ def check_batch(candidates: Sequence[str], handshakes: Sequence[Handshake]) -> s
 
 
 def load_handshakes(path: str, ssid: str = "") -> list[Handshake]:
-    """按扩展名选解析器。抓包里没有 SSID 时用传入的补上。"""
+    """按扩展名选解析器。
+
+    给了 SSID 就以 SSID 为准：抓包里的 SSID 可能是空的，也可能被改过，
+    而 PBKDF2 要用 SSID 当盐，盐错了算出来的 PMK 就不对。
+    """
     ext = os.path.splitext(path)[1].lower()
     if ext in (".hc22000", ".hcx", ".txt"):
         hs_list = parse_hc22000(path)
@@ -399,8 +401,7 @@ def load_handshakes(path: str, ssid: str = "") -> list[Handshake]:
         hs_list = parse_pcap(path)
     if ssid:
         for hs in hs_list:
-            if not hs.ssid or hs.ssid == ssid:
-                hs.ssid = ssid
+            hs.ssid = ssid
     return hs_list
 
 
@@ -455,7 +456,6 @@ def describe(handshakes: Iterable[Handshake]) -> list[str]:
     for hs in handshakes:
         kind = "SAE(WPA3)" if hs.sae else ("PMKID" if hs.pmkid else "四次握手")
         lines.append(
-            "SSID=%s  BSSID=%s  STA=%s  方式=%s"
-            % (hs.ssid or "?", hs.bssid.hex(":"), hs.sta.hex(":"), kind)
+            "SSID={}  BSSID={}  STA={}  方式={}".format(hs.ssid or "?", hs.bssid.hex(":"), hs.sta.hex(":"), kind)
         )
     return lines

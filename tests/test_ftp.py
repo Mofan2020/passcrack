@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import socket
 import threading
 
@@ -28,16 +29,14 @@ class FakeFtpServer:
         self._stop = False
         self._thread = threading.Thread(target=self._serve, daemon=True)
 
-    def __enter__(self) -> "FakeFtpServer":
+    def __enter__(self) -> FakeFtpServer:
         self._thread.start()
         return self
 
     def __exit__(self, *exc) -> None:
         self._stop = True
-        try:
+        with contextlib.suppress(Exception):
             self.sock.close()
-        except Exception:
-            pass
 
     def _serve(self) -> None:
         while not self._stop:
@@ -76,10 +75,7 @@ class FakeFtpServer:
                 elif upper.startswith("TYPE"):
                     f.write(b"200 ok\r\n")
                     f.flush()
-                elif upper.startswith("AUTH"):
-                    f.write(b"500 not supported\r\n")
-                    f.flush()
-                elif upper.startswith("PBSZ") or upper.startswith("PROT"):
+                elif upper.startswith("AUTH") or upper.startswith("PBSZ") or upper.startswith("PROT"):
                     f.write(b"500 not supported\r\n")
                     f.flush()
                 else:
@@ -88,10 +84,8 @@ class FakeFtpServer:
         except Exception:
             pass
         finally:
-            try:
+            with contextlib.suppress(Exception):
                 conn.close()
-            except Exception:
-                pass
 
 
 @pytest.fixture()

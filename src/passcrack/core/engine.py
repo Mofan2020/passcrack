@@ -9,9 +9,9 @@ from __future__ import annotations
 
 import multiprocessing as mp
 import time
+from collections.abc import Callable, Iterable, Sequence
 from concurrent.futures import FIRST_COMPLETED, Future, ProcessPoolExecutor, ThreadPoolExecutor, wait
 from dataclasses import dataclass, field
-from typing import Callable, Iterable, Sequence
 
 # 一个批次里最多放多少个候选口令
 DEFAULT_CHUNK = 512

@@ -18,8 +18,8 @@ import shutil
 import struct
 import subprocess
 import zipfile
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Sequence
 
 # PKZIP 传统加密用的 CRC-32 表（不能用 zlib.crc32，那个带前后异或）
 _CRC_TABLE: list[int] = []
@@ -54,7 +54,7 @@ def zipcrypto_check(password: bytes, enc_header: bytes, check_byte: int) -> bool
     last = len(enc_header) - 1
     for i, c in enumerate(enc_header):
         temp = (k2 | 2) & 0xFFFFFFFF
-        plain = c ^ ((((temp * (temp ^ 1)) >> 24) & 0xFF))
+        plain = c ^ (((temp * (temp ^ 1)) >> 24) & 0xFF)
         if i == last:
             return plain == check_byte
         k0, k1, k2 = _update_keys(k0, k1, k2, plain)
@@ -164,15 +164,12 @@ def _try_7z_binary(path: str, password: str) -> bool | None:
     exe = _external_7z()
     if not exe:
         return None
-    out = os.path.dirname(os.path.abspath(path)) or "."
     try:
         r = subprocess.run([exe, "t", "-p" + password, "-y", path],
                            capture_output=True, timeout=60)
     except Exception:
         return None
-    if r.returncode == 0:
-        return True
-    return False
+    return r.returncode == 0
 
 
 def _try_unrar(path: str, password: str) -> bool | None:
@@ -184,7 +181,7 @@ def _try_unrar(path: str, password: str) -> bool | None:
                            capture_output=True, timeout=60)
     except Exception:
         return None
-    return True if r.returncode == 0 else False
+    return r.returncode == 0
 
 
 def check_batch(candidates: Sequence[str], path: str) -> str | None:

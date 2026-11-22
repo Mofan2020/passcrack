@@ -9,12 +9,13 @@
 
 from __future__ import annotations
 
+import contextlib
 import ftplib
 import socket
 import ssl
 import time
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Sequence
 
 FTP_ERRORS = tuple(ftplib.all_errors) + (socket.timeout,)
 
@@ -28,8 +29,16 @@ class FtpTarget:
     timeout: float = 10.0
     delay: float = 0.5
     max_attempts: int = 0
+    attempts: int = 0
     banner: str = ""
     errors: list[str] = field(default_factory=list)
+
+    @property
+    def attempts_left(self) -> int:
+        """还能试几次。max_attempts 为 0 表示不限。"""
+        if not self.max_attempts:
+            return -1
+        return max(0, self.max_attempts - self.attempts)
 
     def describe(self) -> str:
         scheme = "ftps" if self.implicit_tls else "ftp"
@@ -67,10 +76,8 @@ def probe(target: FtpTarget) -> str:
         raise ConnectionError(f"连不上 {target.host}:{target.port}：{exc}") from exc
     finally:
         if ftp is not None:
-            try:
+            with contextlib.suppress(Exception):
                 ftp.close()
-            except Exception:
-                pass
 
 
 def try_login(target: FtpTarget, password: str) -> bool:
@@ -81,10 +88,8 @@ def try_login(target: FtpTarget, password: str) -> bool:
         ftp.login(target.username, password)
         if isinstance(ftp, ftplib.FTP_TLS) and not target.implicit_tls:
             # 显式 TLS：登录成功后再升级
-            try:
+            with contextlib.suppress(Exception):
                 ftp.prot_p()
-            except Exception:
-                pass
         return True
     except ftplib.error_perm as exc:
         msg = str(exc)
@@ -98,24 +103,23 @@ def try_login(target: FtpTarget, password: str) -> bool:
         if "421" in msg:
             raise AttemptLimitReached(msg) from exc
         return False
-    except (OSError, socket.timeout, ssl.SSLError) as exc:
+    except (TimeoutError, OSError, ssl.SSLError) as exc:
         raise ConnectionError(f"连接 {target.host}:{target.port} 出错：{exc}") from exc
     finally:
         if ftp is not None:
             try:
                 ftp.quit()
             except Exception:
-                try:
+                with contextlib.suppress(Exception):
                     ftp.close()
-                except Exception:
-                    pass
 
 
 def check_batch(candidates: Sequence[str], target: FtpTarget) -> str | None:
     """一批候选里找出能登录的口令。"""
     for cand in candidates:
-        if target.max_attempts and target.max_attempts <= 0:
+        if target.max_attempts and target.attempts >= target.max_attempts:
             raise AttemptLimitReached("已达到设定的最大尝试次数")
+        target.attempts += 1
         try:
             if try_login(target, cand):
                 return cand
@@ -126,8 +130,6 @@ def check_batch(candidates: Sequence[str], target: FtpTarget) -> str | None:
             raise
         if target.delay:
             time.sleep(target.delay)
-        if target.max_attempts:
-            target.max_attempts -= 1
     return None
 
 

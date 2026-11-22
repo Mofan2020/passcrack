@@ -9,6 +9,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import sys
 
 # 用来试探编码的一组字符：中文、制表符、长破折号
@@ -25,8 +26,9 @@ def attach_parent_console() -> bool:
         ATTACH_PARENT_PROCESS = -1
         if not ctypes.windll.kernel32.AttachConsole(ATTACH_PARENT_PROCESS):
             return False
-        sys.stdout = open("CONOUT$", "w", encoding="utf-8", errors="replace")
-        sys.stderr = open("CONOUT$", "w", encoding="utf-8", errors="replace")
+        # 这两个文件句柄要活到进程结束，不能用 with
+        sys.stdout = open("CONOUT$", "w", encoding="utf-8", errors="replace")  # noqa: SIM115
+        sys.stderr = open("CONOUT$", "w", encoding="utf-8", errors="replace")  # noqa: SIM115
         return True
     except Exception:
         return False
@@ -51,10 +53,8 @@ def _force_utf8() -> None:
         except Exception:
             pass
     for stream in (sys.stdout, sys.stderr):
-        try:
+        with contextlib.suppress(Exception):
             stream.reconfigure(encoding="utf-8", errors="replace")
-        except Exception:
-            pass
 
 
 def setup() -> None:

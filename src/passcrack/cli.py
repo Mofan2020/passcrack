@@ -10,11 +10,12 @@ import argparse
 import os
 import sys
 import time
-from typing import Sequence
+from collections.abc import Sequence
 
-from . import __version__
-from . import console
-from .core import archives, candidates, ftp as ftp_mod, wifi as wifi_mod
+from . import __version__, console
+from .core import archives, candidates
+from .core import ftp as ftp_mod
+from .core import wifi as wifi_mod
 from .core.engine import SearchJob, human_duration, human_rate
 from .disclaimer import LONG, SHORT
 

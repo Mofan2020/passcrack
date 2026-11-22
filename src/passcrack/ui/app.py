@@ -9,13 +9,14 @@ from __future__ import annotations
 import os
 import sys
 import threading
-import time
 import uuid
 from dataclasses import dataclass, field
 from typing import Any
 
 from .. import __version__
-from ..core import archives, candidates, ftp as ftp_mod, wifi as wifi_mod
+from ..core import archives, candidates
+from ..core import ftp as ftp_mod
+from ..core import wifi as wifi_mod
 from ..core.engine import SearchJob
 from ..disclaimer import LONG, SHORT, UI_ACK_TEXT
 
@@ -89,7 +90,7 @@ class Api:
         )
         if not result:
             return []
-        if isinstance(result, (str, tuple)):
+        if isinstance(result, str | tuple):
             return list(result) if isinstance(result, tuple) else [result]
         return list(result)
 

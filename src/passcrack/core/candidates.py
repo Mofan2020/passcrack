@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import itertools
 import string
-from typing import Iterable, Iterator, Sequence
+from collections.abc import Iterable, Iterator, Sequence
 
 # 内置常用口令表。放在代码里而不是单独的数据文件，是为了让打包出来的
 # 单文件程序不依赖外部资源。
@@ -103,7 +103,7 @@ def load_wordlist(paths: Iterable[str]) -> list[str]:
     """读取字典文件，一行一个口令，忽略空行与 # 注释。"""
     words: list[str] = []
     for p in paths:
-        with open(p, "r", encoding="utf-8", errors="replace") as fh:
+        with open(p, encoding="utf-8", errors="replace") as fh:
             for line in fh:
                 w = line.strip()
                 if w and not w.startswith("#"):

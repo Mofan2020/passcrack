@@ -56,7 +56,7 @@ def zipcrypto_check(password: bytes, enc_header: bytes, check_byte: int) -> bool
         # PKWARE 的公式：temp 取 16 位，(temp * (temp ^ 1)) 右移 8 位再取低 8 位。
         # 用 32 位右移 24 位是错的，两者结果不同。
         temp = (k2 | 2) & 0xFFFF
-        plain = c ^ ((((temp * (temp ^ 1)) >> 8) & 0xFF))
+        plain = c ^ (((temp * (temp ^ 1)) >> 8) & 0xFF)
         if i == last:
             return plain == check_byte
         k0, k1, k2 = _update_keys(k0, k1, k2, plain)
